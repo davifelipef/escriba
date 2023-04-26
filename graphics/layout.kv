@@ -24,14 +24,6 @@
             Widget:
                 size_hint_x: 0.6
 
-            # button to call the history screen
-            TooltipMDIconButton:
-                id: history_button
-                icon: "history"
-                pos_hint: {"center_y": 0.55}
-                tooltip_text: "Histórico de Empréstimos"
-                on_release: root.show_history()
-
             # button to clear all fields and reset all buttons
             TooltipMDIconButton:
                 id: erase_button
@@ -39,7 +31,7 @@
                 pos_hint: {"center_y": 0.55}
                 tooltip_text: "Limpar campos"
                 on_release: root.eraser()
-
+            
         # Handles the main page layout
         MDBoxLayout:
             id: page_wrapper
@@ -114,7 +106,6 @@
                 md_bg_color: (0.35, 0.35, 0.35, 1)
                 size_hint: None, None
                 pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                height: dp(20)
                 halign: 'center'
                 disabled: True
                 on_release: 
@@ -130,112 +121,220 @@
                 valign: 'center'
                 anchor_x: 'center'
                 disabled: True    
-        
-        # Handles the period of the day row of buttons
-        MDBoxLayout:
-            id: daytime_row
-            orientation: 'horizontal'
-            size_hint_y: None
-            spacing: dp(8)
 
-            # morning button
-            MDRaisedButton:
-                id: morning_button
-                text: 'Manhã'
-                font_size: '16sp'
-                md_bg_color: (0.35, 0.35, 0.35, 1)
-                size_hint: 0.5, None
+            # Handles the period of the day row of buttons
+            MDBoxLayout:
+                id: daytime_row
+                orientation: 'horizontal'
+                size_hint_y: None
+                spacing: dp(8)
+
+                # morning button
+                MDRaisedButton:
+                    id: morning_button
+                    text: 'Manhã'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    halign: 'center'
+                    disabled: True
+                    on_release: 
+                        root.on_manual_period(self)
+                        root.click_sound()
+                
+                # afternoon button
+                MDRaisedButton:
+                    id: afternoon_button
+                    text: 'Tarde'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    halign: 'center'
+                    disabled: True
+                    on_release: 
+                        root.on_manual_period(self)
+                        root.click_sound()
+                
+                # night button
+                MDRaisedButton:
+                    id: night_button
+                    text: 'Noite'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    halign: 'center'
+                    disabled: True
+                    on_release: 
+                        root.on_manual_period(self)
+                        root.click_sound()
+
+            MDLabel:
+                id: age_select
+                text: 'Selecionar faixa etária:'
                 halign: 'center'
-                disabled: True
-                on_release: 
-                    root.on_manual_period(self)
-                    root.click_sound()
+                font_size: '16sp'
+                valign: 'center'
+                anchor_x: 'center'
+
+            # Handles the age selection row of buttons
+            MDBoxLayout:
+                id: public_age_row
+                orientation: 'horizontal'
+                size_hint_y: None
+                spacing: dp(8)
+
+                # til 12 years old button
+                MDRaisedButton:
+                    id: twelve_yo_button
+                    text: 'Até 12'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    halign: 'center'
+                    on_release: 
+                        root.age_selection(self)
+                        root.click_sound()
+                
+                # from 13 til 17 years old button
+                MDRaisedButton:
+                    id: thirteen_til_seventeen_yo_button
+                    text: '13 a 17'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    halign: 'center'
+                    on_release: 
+                        root.age_selection(self)
+                        root.click_sound()
+                
+                # from 18 til 59 years old button
+                MDRaisedButton:
+                    id: eighteen_til_fiftynine_yo_button
+                    text: '18 a 59'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    halign: 'center'
+                    on_release: 
+                        root.age_selection(self)
+                        root.click_sound()
+
+                # from 60 years old or more button
+                MDRaisedButton:
+                    id: sixty_yo_button
+                    text: '60 ou mais'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    halign: 'center'
+                    on_release: 
+                        root.age_selection(self)
+                        root.click_sound()
             
-            # afternoon button
-            MDRaisedButton:
-                id: afternoon_button
-                text: 'Tarde'
-                font_size: '16sp'
-                md_bg_color: (0.35, 0.35, 0.35, 1)
-                size_hint: 0.5, None
+            MDLabel:
+                id: public_select
+                text: 'Selecionar dados do público:'
                 halign: 'center'
-                disabled: True
-                on_release: 
-                    root.on_manual_period(self)
-                    root.click_sound()
+                font_size: '16sp'
+                valign: 'center'
+                anchor_x: 'center'
+
+            # Handles the first row of buttons
+            MDBoxLayout:
+                id: public_type_row
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: dp(50)
+                spacing: dp(8)
+
+                # CEI student
+                MDRaisedButton:
+                    id: cei_button
+                    text: 'CEI'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    height: dp(20)
+                    halign: 'center'
+                    on_release: 
+                        root.public_selection(self)
+                        root.click_sound()
+                
+                # EMEI student
+                MDRaisedButton:
+                    id: emei_button
+                    text: 'EMEI'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    height: dp(20)
+                    halign: 'center'
+                    on_release: 
+                        root.public_selection(self)
+                        root.click_sound()
+                
+                # EMEF student
+                MDRaisedButton:
+                    id: emef_button
+                    text: 'EMEF'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    height: dp(20)
+                    halign: 'center'
+                    on_release: 
+                        root.public_selection(self)
+                        root.click_sound()
+
+                # ETEC button
+                MDRaisedButton:
+                    id: etec_button
+                    text: 'ETEC'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    height: dp(20)
+                    halign: 'center'
+                    on_release: 
+                        root.public_selection(self)
+                        root.click_sound()
+
+                # Community button
+                MDRaisedButton:
+                    id: community_button
+                    text: 'Comunidade'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    height: dp(20)
+                    halign: 'center'
+                    on_release: 
+                        root.public_selection(self)
+                        root.click_sound()
+
+                # Employee button
+                MDRaisedButton:
+                    id: employee_button
+                    text: 'Funcionário'
+                    font_size: '16sp'
+                    md_bg_color: (0.35, 0.35, 0.35, 1)
+                    size_hint: 0.5, None
+                    height: dp(20)
+                    halign: 'center'
+                    on_release: 
+                        root.public_selection(self)
+                        root.click_sound()
             
-            # night button
+            # save button
             MDRaisedButton:
-                id: night_button
-                text: 'Noite'
+                id: save_button
+                text: 'Salvar informações'
                 font_size: '16sp'
-                md_bg_color: (0.35, 0.35, 0.35, 1)
-                size_hint: 0.5, None
-                halign: 'center'
-                disabled: True
-                on_release: 
-                    root.on_manual_period(self)
-                    root.click_sound()
-
-        MDLabel:
-            id: age_select
-            text: 'Selecionar faixa etária:'
-            halign: 'center'
-            font_size: '16sp'
-            valign: 'center'
-            anchor_x: 'center'
-
-        # Handles the age selection row of buttons
-        MDBoxLayout:
-            id: public_age_row
-            orientation: 'horizontal'
-            size_hint_y: None
-            spacing: dp(8)
-
-            # til 12 years old button
-            MDRaisedButton:
-                id: twelve_yo_button
-                text: 'Até 12'
-                font_size: '16sp'
-                md_bg_color: (0.35, 0.35, 0.35, 1)
-                size_hint: 0.5, None
+                md_bg_color: 'blue'
+                size_hint: None, None
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                height: dp(20)
                 halign: 'center'
                 on_release: 
-                    root.age_selection(self)
-                    root.click_sound()
-            
-            # from 13 til 17 years old button
-            MDRaisedButton:
-                id: thirteen_til_seventeen_yo_button
-                text: '13 a 17'
-                font_size: '16sp'
-                md_bg_color: (0.35, 0.35, 0.35, 1)
-                size_hint: 0.5, None
-                halign: 'center'
-                on_release: 
-                    root.age_selection(self)
-                    root.click_sound()
-            
-            # from 18 til 59 years old button
-            MDRaisedButton:
-                id: eighteen_til_fiftynine_yo_button
-                text: '18 a 59'
-                font_size: '16sp'
-                md_bg_color: (0.35, 0.35, 0.35, 1)
-                size_hint: 0.5, None
-                halign: 'center'
-                on_release: 
-                    root.age_selection(self)
-                    root.click_sound()
-
-            # from 60 years old or more button
-            MDRaisedButton:
-                id: sixty_yo_button
-                text: '60 ou mais'
-                font_size: '16sp'
-                md_bg_color: (0.35, 0.35, 0.35, 1)
-                size_hint: 0.5, None
-                halign: 'center'
-                on_release: 
-                    root.age_selection(self)
+                    root.save_data()
                     root.click_sound()
