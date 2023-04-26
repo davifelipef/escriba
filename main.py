@@ -10,15 +10,9 @@ locale.setlocale(locale.LC_TIME, 'pt_BR.utf8')
 from kivy.core.window import Window
 from kivymd.app import MDApp
 from kivy.lang import Builder
-from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
-from kivymd.uix.button import MDFlatButton
-from kivy.uix.label import Label
-from kivymd.uix.label import MDLabel
 from kivymd.uix.snackbar import Snackbar
 from kivymd.uix.pickers import MDDatePicker
-from kivy.uix.popup import Popup
 from kivy.clock import Clock
 
 # loads the layout file
@@ -47,7 +41,57 @@ class MainScreen(BoxLayout):
             sound.play()
         except FileNotFoundError:
             sound = None
-            print("Erro: O arquivo de som não foi encontrado ou não pôde ser carregado.")
+
+    # sound that plays when data is sucessfully saved
+    def alert_sound(self):
+        try:
+            pygame.mixer.init()
+            sound_file = os.path.join(os.getcwd(), 'sounds/alert.wav')
+            sound = pygame.mixer.Sound(sound_file)
+            sound.set_volume(0.3)
+            sound.play()
+        except FileNotFoundError:
+            sound = None
+
+    # sound that plays when the selected content is erased
+    def eraser_sound(self):
+        try:
+            pygame.mixer.init()
+            sound_file = os.path.join(os.getcwd(), 'sounds/eraser.wav')
+            sound = pygame.mixer.Sound(sound_file)
+            sound.set_volume(0.3)
+            sound.play()
+        except FileNotFoundError:
+            sound = None
+
+    # sound that plays when data is sucessfully saved
+    def data_saved_sound(self):
+        try:
+            pygame.mixer.init()
+            sound_file = os.path.join(os.getcwd(), 'sounds/data_saved.wav')
+            sound = pygame.mixer.Sound(sound_file)
+            sound.play()
+        except FileNotFoundError:
+            sound = None
+
+    # method that opens the assets folder for easy access to the excel file
+    def open_assets_folder(self, *args):
+        # Check if the script is running as an exe file or as a python script
+        if getattr(sys, 'frozen', False):
+            # If running as an exe file, get the directory where the exe file is located
+            script_dir = os.path.dirname(sys.executable)
+        else:
+            # If running as a python script, get the current working directory
+            script_dir = os.getcwd()
+        
+        # sets the path to the file
+        file_path = "assets/data.xlsx"
+        
+        # Join the script directory with the folder name
+        full_file_path = os.path.join(script_dir, file_path)
+        
+        # Open the folder in the default file explorer of the operating system
+        os.startfile(full_file_path)
 
     # erases all the selected buttons and reset their colors
     def eraser(self):
@@ -78,6 +122,8 @@ class MainScreen(BoxLayout):
         self.ids.etec_button.md_bg_color = (0.35, 0.35, 0.35, 1)
         self.ids.community_button.md_bg_color = (0.35, 0.35, 0.35, 1) 
         self.ids.employee_button.md_bg_color = (0.35, 0.35, 0.35, 1)
+        # plays an erasing sound
+        self.eraser_sound()
 
     # handles what button was clicked between auto and manual
     def toggle_date_and_time(self, button):
@@ -144,6 +190,8 @@ class MainScreen(BoxLayout):
     # on save used on date picker function
     def on_save_date(self, instance, value, date_range):
         self.DATE = value.strftime("%d/%m/%Y")
+        # play an alert sound
+        self.alert_sound()
         snackbar = Snackbar(
                             text=f"Data alterada para {self.DATE}.", 
                             duration=4.0,
@@ -151,11 +199,9 @@ class MainScreen(BoxLayout):
                             font_size="16sp"
                         )
         snackbar.open()
-        print(self.DATE)
         
     # opens the date picker widget
     def show_date_picker(self):
-        #self.click_sound()
         date_dialog = MDDatePicker()
         date_dialog.bind(on_save=self.on_save_date)
         date_dialog.open()
@@ -198,17 +244,21 @@ class MainScreen(BoxLayout):
             ws['C1'] = "Faixa Etária"
             ws['D1'] = "Tipo de Público"
             wb.save(wb_path)
+        # if the file is already there, loads it as is
         else:
             wb = openpyxl.load_workbook(wb_path)
             ws = wb.active
 
+        # gets the two sets of row that hold the information about the public age and type
         button_sets = [self.ids.public_age_row, self.ids.public_type_row]
+        # list that will hold the selected button options
         selected_options = []
         for button_set in button_sets:
             for button_id in button_set.children:
+                # check if the button color is blue (which means that it's selected)
                 if button_id.md_bg_color == [0, 0, 1, 1]:
+                    # if the button color is blue, add its text to the list
                     selected_options.append(button_id.text)
-                    print(selected_options)
         
             # checks if the TIME variable was set up manually
             if self.TIME == "Manhã":
@@ -217,57 +267,80 @@ class MainScreen(BoxLayout):
                 pass
             elif self.TIME == "Noite":
                 pass
-            # if the TIME variable was not set manually, gets the current time
+            # if the self.TIME variable was not set manually, gets the current time the save button was clicked
             else:
                 self.TIME = datetime.datetime.now().strftime("%H:%M:%S")
 
         # sets up the row order in the excel file
         row = [None] * 5
+        # writes the date to the first column
         row[0] = self.DATE
+        # writes the time to the second column
         row[1] = self.TIME
         for i in range(min(2, len(selected_options))):
             if i == 0:
+                # writes the age to the third column
                 row[2] = selected_options[i]
             elif i == 1:
+                # writes the type of public to the fourth column
                 row[3] = selected_options[i]
 
-        ws.append(row)
-        wb.save(wb_path)
+        # sets up variables that stores the data saved for printing - used during development
+        '''date_saved = "Informações salvas: Data: " + str(self.DATE)
+        time_saved = ", Horário: " + str(self.TIME)'''
 
-        # sets up variables that stores the data saved for printing
-        date_saved = "Informações salvas: Data: " + str(self.DATE)
-        time_saved = ", Horário: " + str(self.TIME)
+        # checks if there is an age and a public information currently selected
         if selected_options and len(selected_options) >= 2:
-            age_saved = ", Faixa Etária: " + str(selected_options[0])
+
+            # prints an message showing the information that was saved - used during development
+            '''age_saved = ", Faixa Etária: " + str(selected_options[0])
             public_saved = " e Público: " + str(selected_options[1])
-            print(date_saved + time_saved + age_saved + public_saved)
-        else:
-            print("Selecione a faixa etária e o público.")
+            print(date_saved + time_saved + age_saved + public_saved)'''
 
-        # snackbar that shows the saved data count
-        if self.snackbar is None:
-            self.counter = 1
-            text = f"Dados salvos x{self.counter}"
-            self.snackbar = Snackbar(
-                            text=text, 
-                            bg_color=(0, 0.5, 0, 1), # green
-                            font_size="16sp"
-                        )
-            self.snackbar.open()
-            Clock.schedule_once(self.dismiss_snackbar, 3)
-        else:
-            self.counter += 1
-            text = f"Dados salvos x{self.counter}"
-            self.snackbar.text = text
-            remaining_time = self.snackbar.duration - self.last_button_press_time + Clock.get_time()
-            if remaining_time < 3:
-                self.snackbar.duration += 3
+            # saves the information to the excel file
+            ws.append(row)
+            wb.save(wb_path)
+
+            # plays a sound when the data is saved
+            self.data_saved_sound()
+
+            # snackbar that shows that the data was saved and sums the save count if 
+            # it is saved again in less than 3sec
+            if self.snackbar is None:
+                self.counter = 1
+                text = f"Dados salvos x{self.counter}"
+                self.snackbar = Snackbar(
+                                text=text, 
+                                bg_color=(0, 0.5, 0, 1), # green
+                                font_size="16sp"
+                            )
+                self.snackbar.open()
+                Clock.schedule_once(self.dismiss_snackbar, 3)
             else:
-                self.snackbar.duration = remaining_time + 3
-            Clock.unschedule(self.dismiss_snackbar)
-            Clock.schedule_once(self.dismiss_snackbar, self.snackbar.duration - remaining_time)
+                self.counter += 1
+                text = f"Dados salvos x{self.counter}"
+                self.snackbar.text = text
+                if self.snackbar.duration is None:
+                    remaining_time = 3
+                else:
+                    remaining_time = self.snackbar.duration - self.last_button_press_time + Clock.get_time()
+                if remaining_time < 3:
+                    self.snackbar.duration += 3
+                else:
+                    self.snackbar.duration = remaining_time + 3
+                Clock.unschedule(self.dismiss_snackbar)
+                Clock.schedule_once(self.dismiss_snackbar, self.snackbar.duration - remaining_time)
 
-        self.last_button_press_time = Clock.get_time()
+            self.last_button_press_time = Clock.get_time()
+        else:
+            # plays a sound when the alert message is displayed
+            self.alert_sound()
+            alert_snackbar = Snackbar(
+                                text='Selecione a faixa etária e o público!', 
+                                bg_color=(1, 0, 0, 1), # red
+                                font_size="16sp"
+                            )
+            alert_snackbar.open()
 
     # deals with the dismissal of the saved data's snackbar
     def dismiss_snackbar(self, dt):
@@ -280,7 +353,11 @@ class MyApp(MDApp):
  
     def build(self):
         # sets the app window title
-        self.title = 'Controle Diário de Circulação - Versão 0.2'
+        self.title = 'Escriba - Versão 0.2'
+        # set the taskbar icon
+        Window.set_icon('graphics/app.ico')
+        # set the window icon
+        self.icon = 'graphics/app.ico'
         #exibts the layout above in the user screen
         return MainScreen()      
 
