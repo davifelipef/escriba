@@ -28,6 +28,16 @@
 
             # button to call the history screen
             TooltipMDIconButton:
+                id: export_button
+                icon: "export"
+                pos_hint: {"center_y": 0.55}
+                tooltip_text: "Exportar relatório"
+                on_release: 
+                    root.click_sound()
+                    root.generate_report_thread()
+
+            # button to call the history screen
+            TooltipMDIconButton:
                 id: history_button
                 icon: "microsoft-excel"
                 pos_hint: {"center_y": 0.55}
@@ -35,7 +45,6 @@
                 on_release: 
                     root.click_sound()
                     root.open_assets_folder()
-                    
 
             # button to clear all fields and reset all buttons
             TooltipMDIconButton:
@@ -360,7 +369,7 @@
                     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                     halign: 'center'
                     on_release: 
-                        root.save_data()
+                        root.save_data_thread()
 
                 # spacer
                 Widget:
