@@ -6,12 +6,14 @@ import datetime
 import openpyxl
 import pygame
 import locale
+import threading
 locale.setlocale(locale.LC_TIME, 'pt_BR.utf8')
 from kivy.core.window import Window
 from kivymd.app import MDApp
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivymd.uix.snackbar import Snackbar
+from openpyxl.utils import get_column_letter
 from kivymd.uix.pickers import MDDatePicker
 from kivy.clock import Clock
 
@@ -93,6 +95,108 @@ class MainScreen(BoxLayout):
         # Open the folder in the default file explorer of the operating system
         os.startfile(full_file_path)
 
+    # creates a new thread to run the save data on the background
+    def generate_report_thread(self):
+        threading.Thread(target=self.generate_report).start()
+
+    # generate report method
+    def generate_report(self, instance=None):
+        def is_time_in_period(time_value, period):
+            if period == "Manhã":
+                return "08:00:00" <= time_value <= "11:59:59"
+            elif period == "Tarde":
+                return "12:00:00" <= time_value <= "17:59:59"
+            elif period == "Noite":
+                return "18:00:00" <= time_value <= "20:59:59"
+            else:
+                return False
+
+        # Load the input data file
+        input_file = "assets/data.xlsx"
+        workbook = openpyxl.load_workbook(input_file)
+        sheet = workbook.active
+
+        # Get unique dates from the input data
+        dates = []
+        for row in sheet.iter_rows(values_only=True, min_row=2):
+            date = row[0]
+            if date not in dates:
+                dates.append(date)
+
+        valid_dates = [date for date in dates if len(date.split('/')) == 3]
+        valid_dates.sort(key=lambda x: (x.split('/')[2], x.split('/')[1], x.split('/')[0]))
+
+        # Create the output workbook
+        output_file = "output.xlsx"
+        output_workbook = openpyxl.Workbook()
+        output_sheet = output_workbook.active
+
+        # Set column headers for dates
+        for index, date in enumerate(dates):
+            column_letter = get_column_letter(index + 2)
+            output_sheet[column_letter + "1"] = date
+
+
+        # Set row headers for public types
+        public_types = ["CEI", "EMEI", "EMEF", "ETEC", "Comunidade", "Funcionário"]
+        for index, public_type in enumerate(public_types):
+            output_sheet["A" + str(index + 2)] = public_type
+
+        # Set row header for total of public types
+        output_sheet["A8"] = "Total"
+
+        # Set row headers for ages
+        ages = ["Até 12", "13 a 17", "18 a 59", "60 ou mais"]
+        for index, age in enumerate(ages):
+            output_sheet["A" + str(index + 9)] = age
+
+        # Set row header for total of ages
+        output_sheet["A13"] = "Total"
+
+        # Set row headers for time of the day
+        time_of_day = ["Manhã", "Tarde", "Noite"]
+        for index, time in enumerate(time_of_day):
+            output_sheet["A" + str(index + 14)] = time
+
+        # Set row header for total of time of the day
+        output_sheet["A17"] = "Total"
+
+        # Calculate and populate the report data
+        for index, date in enumerate(dates):
+            column_letter = get_column_letter(index + 2)
+            for i, public_type in enumerate(public_types):
+                count = 0
+                for row in sheet.iter_rows(values_only=True, min_row=2):
+                    if row[0] == date and row[3] == public_type:
+                        count += 1
+                output_sheet[column_letter + str(i + 2)] = count
+
+            # Calculate and populate the total of public types for the day
+            output_sheet[column_letter + "8"] = f"=SUM({column_letter}2:{column_letter}7)"
+
+            for i, age in enumerate(ages):
+                count = 0
+                for row in sheet.iter_rows(values_only=True, min_row=2):
+                    if row[0] == date and row[2] == age:
+                        count += 1
+                output_sheet[column_letter + str(i + 9)] = count
+
+            # Calculate and populate the total of ages for the day
+            output_sheet[column_letter + "13"] = f"=SUM({column_letter}9:{column_letter}12)"
+
+            for i, time in enumerate(time_of_day):
+                count = 0
+                for row in sheet.iter_rows(values_only=True, min_row=2):
+                    if row[0] == date and is_time_in_period(row[1], time):
+                        count += 1
+                output_sheet[column_letter + str(i + 14)] = count
+
+            # Calculate and populate the total of time of the day for the day
+            output_sheet[column_letter + "17"] = f"=SUM({column_letter}14:{column_letter}16)"
+
+        # Save the output workbook
+        output_workbook.save(output_file)
+        
     # erases all the selected buttons and reset their colors
     def eraser(self):
         # make its color blue
@@ -230,6 +334,10 @@ class MainScreen(BoxLayout):
                 button.md_bg_color = [0.35, 0.35, 0.35, 1]
             instance.md_bg_color = [0, 0, 1, 1]
 
+    # creates a new thread to run the save data on the background
+    def save_data_thread(self):
+        threading.Thread(target=self.save_data).start()
+
     # save data method
     def save_data(self, instance=None, *args):
         # checks for the data where the file will be saved
@@ -285,17 +393,8 @@ class MainScreen(BoxLayout):
                 # writes the type of public to the fourth column
                 row[3] = selected_options[i]
 
-        # sets up variables that stores the data saved for printing - used during development
-        '''date_saved = "Informações salvas: Data: " + str(self.DATE)
-        time_saved = ", Horário: " + str(self.TIME)'''
-
         # checks if there is an age and a public information currently selected
         if selected_options and len(selected_options) >= 2:
-
-            # prints an message showing the information that was saved - used during development
-            '''age_saved = ", Faixa Etária: " + str(selected_options[0])
-            public_saved = " e Público: " + str(selected_options[1])
-            print(date_saved + time_saved + age_saved + public_saved)'''
 
             # saves the information to the excel file
             ws.append(row)
@@ -304,43 +403,52 @@ class MainScreen(BoxLayout):
             # plays a sound when the data is saved
             self.data_saved_sound()
 
-            # snackbar that shows that the data was saved and sums the save count if 
-            # it is saved again in less than 3sec
-            if self.snackbar is None:
-                self.counter = 1
-                text = f"Dados salvos x{self.counter}"
-                self.snackbar = Snackbar(
-                                text=text, 
-                                bg_color=(0, 0.5, 0, 1), # green
-                                font_size="16sp"
-                            )
-                self.snackbar.open()
-                Clock.schedule_once(self.dismiss_snackbar, 3)
-            else:
-                self.counter += 1
-                text = f"Dados salvos x{self.counter}"
-                self.snackbar.text = text
-                if self.snackbar.duration is None:
-                    remaining_time = 3
-                else:
-                    remaining_time = self.snackbar.duration - self.last_button_press_time + Clock.get_time()
-                if remaining_time < 3:
-                    self.snackbar.duration += 3
-                else:
-                    self.snackbar.duration = remaining_time + 3
-                Clock.unschedule(self.dismiss_snackbar)
-                Clock.schedule_once(self.dismiss_snackbar, self.snackbar.duration - remaining_time)
-
-            self.last_button_press_time = Clock.get_time()
+            # calls the info snackbar
+            Clock.schedule_once(self.save_successful_snackbar)
+            
         else:
-            # plays a sound when the alert message is displayed
-            self.alert_sound()
-            alert_snackbar = Snackbar(
-                                text='Selecione a faixa etária e o público!', 
-                                bg_color=(1, 0, 0, 1), # red
-                                font_size="16sp"
-                            )
-            alert_snackbar.open()
+            # calls an alert snackbar
+            Clock.schedule_once(self.save_alert_snackbar)
+
+    def save_successful_snackbar(self, dt):
+        # snackbar that shows that the data was saved and sums the save count if 
+        # it is saved again in less than 3sec
+        if self.snackbar is None:
+            self.counter = 1
+            text = f"Dados salvos x{self.counter}"
+            self.snackbar = Snackbar(
+                            text=text, 
+                            bg_color=(0, 0.5, 0, 1), # green
+                            font_size="16sp"
+                        )
+            self.snackbar.open()
+            Clock.schedule_once(self.dismiss_snackbar, 3)
+        else:
+            self.counter += 1
+            text = f"Dados salvos x{self.counter}"
+            self.snackbar.text = text
+            if self.snackbar.duration is None:
+                remaining_time = 3
+            else:
+                remaining_time = self.snackbar.duration - self.last_button_press_time + Clock.get_time()
+            if remaining_time < 3:
+                self.snackbar.duration += 3
+            else:
+                self.snackbar.duration = remaining_time + 3
+            Clock.unschedule(self.dismiss_snackbar)
+            Clock.schedule_once(self.dismiss_snackbar, self.snackbar.duration - remaining_time)
+
+        self.last_button_press_time = Clock.get_time()
+
+    def save_alert_snackbar(self, dt):
+        # plays a sound when the alert message is displayed
+        self.alert_sound()
+        alert_snackbar = Snackbar(
+                            text='Selecione a faixa etária e o público!', 
+                            bg_color=(1, 0, 0, 1), # red
+                            font_size="16sp"
+                        )
+        alert_snackbar.open()
 
     # deals with the dismissal of the saved data's snackbar
     def dismiss_snackbar(self, dt):
@@ -349,11 +457,11 @@ class MainScreen(BoxLayout):
         self.counter = 0
 
 # app class
-class MyApp(MDApp):
+class Scribe(MDApp):
  
     def build(self):
         # sets the app window title
-        self.title = 'Escriba - Versão 0.2'
+        self.title = 'Escriba - Versão 0.3'
         # set the taskbar icon
         Window.set_icon('graphics/app.ico')
         # set the window icon
@@ -363,4 +471,4 @@ class MyApp(MDApp):
 
 # runs the program
 if __name__ == '__main__':
-    MyApp().run()
+    Scribe().run()
