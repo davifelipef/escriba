@@ -95,12 +95,26 @@ class MainScreen(BoxLayout):
         # Open the folder in the default file explorer of the operating system
         os.startfile(full_file_path)
 
-    # creates a new thread to run the save data on the background
+    # creates a new thread to run the report generation on the background
     def generate_report_thread(self):
+        # calls the snackbar that informs the report is ready
+        Clock.schedule_once(self.report_start_snackbar)
+        # starts the report creation thread
         threading.Thread(target=self.generate_report).start()
+
+    # snackbar that informs the report will be generated
+    def report_start_snackbar(self, dt):
+        self.snackbar = Snackbar(
+                            text="O relatório será gerado em instantes...", 
+                            bg_color=(0, 0, 1, 1), # blue
+                            font_size="16sp"
+                        )
+        self.snackbar.open()
+        Clock.schedule_once(self.dismiss_snackbar, 3)
 
     # generate report method
     def generate_report(self, instance=None):
+        # function that calculates the time of the day based on specific time periods
         def is_time_in_period(time_value, period):
             if period == "Manhã":
                 return "08:00:00" <= time_value <= "11:59:59"
@@ -116,52 +130,58 @@ class MainScreen(BoxLayout):
         workbook = openpyxl.load_workbook(input_file)
         sheet = workbook.active
 
-        # Get unique dates from the input data
+        # Get the unique dates from the input file and stores them in a list
         dates = []
         for row in sheet.iter_rows(values_only=True, min_row=2):
             date = row[0]
             if date not in dates:
                 dates.append(date)
 
+        # Checks if the dates are valid and then sorts them in ascendent order
         valid_dates = [date for date in dates if len(date.split('/')) == 3]
         valid_dates.sort(key=lambda x: (x.split('/')[2], x.split('/')[1], x.split('/')[0]))
 
-        # Create the output workbook
-        output_file = "output.xlsx"
+        # Specifies the desktop as the place where the output file will be saved
+        desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+
+        # Create the output workbook and customize the file name with the current date
+        output_file = f"consolidado-{self.DATE.replace('/', '-')}.xlsx"
         output_workbook = openpyxl.Workbook()
         output_sheet = output_workbook.active
 
-        # Set column headers for dates
+        # Set the dates as the column headers
         for index, date in enumerate(dates):
             column_letter = get_column_letter(index + 2)
             output_sheet[column_letter + "1"] = date
 
-
-        # Set row headers for public types
+        # Sets the public types as the first set of rows
         public_types = ["CEI", "EMEI", "EMEF", "ETEC", "Comunidade", "Funcionário"]
         for index, public_type in enumerate(public_types):
+            # Sets the cell A2 as the start of the public type rows so A7 holds the last row
             output_sheet["A" + str(index + 2)] = public_type
 
-        # Set row header for total of public types
+        # Sets the cell A8 as the total row to sum all the public types numbers
         output_sheet["A8"] = "Total"
 
-        # Set row headers for ages
+        # Sets the ages as the second set of rows
         ages = ["Até 12", "13 a 17", "18 a 59", "60 ou mais"]
         for index, age in enumerate(ages):
+            # Sets the cell A9 as the start of the age rows so A12 holds the last row
             output_sheet["A" + str(index + 9)] = age
 
-        # Set row header for total of ages
+        # Sets the cell A13 as the total row to sum all the age numbers
         output_sheet["A13"] = "Total"
 
-        # Set row headers for time of the day
+        # Sets the period of the day as the third and last set of rows
         time_of_day = ["Manhã", "Tarde", "Noite"]
         for index, time in enumerate(time_of_day):
+            # Sets the cell A14 as the start of the age rows so A16 holds the last row
             output_sheet["A" + str(index + 14)] = time
 
-        # Set row header for total of time of the day
+        # Sets the cell A17 as the total row to sum all the period of the day numbers
         output_sheet["A17"] = "Total"
 
-        # Calculate and populate the report data
+        # Calculate and populate the public type report data
         for index, date in enumerate(dates):
             column_letter = get_column_letter(index + 2)
             for i, public_type in enumerate(public_types):
@@ -171,7 +191,7 @@ class MainScreen(BoxLayout):
                         count += 1
                 output_sheet[column_letter + str(i + 2)] = count
 
-            # Calculate and populate the total of public types for the day
+            # Calculate and populate the total of public types for the given day
             output_sheet[column_letter + "8"] = f"=SUM({column_letter}2:{column_letter}7)"
 
             for i, age in enumerate(ages):
@@ -195,7 +215,19 @@ class MainScreen(BoxLayout):
             output_sheet[column_letter + "17"] = f"=SUM({column_letter}14:{column_letter}16)"
 
         # Save the output workbook
-        output_workbook.save(output_file)
+        #output_workbook.save(output_file)
+        output_workbook.save(os.path.join(desktop_path, output_file))
+        # calls the snackbar that informs the report is ready
+        Clock.schedule_once(self.report_ready_snackbar)
+
+    def report_ready_snackbar(self, dt):
+        self.snackbar = Snackbar(
+                            text="O relatório está pronto!", 
+                            bg_color=(0, 0.5, 0, 1), # green
+                            font_size="16sp"
+                        )
+        self.snackbar.open()
+        Clock.schedule_once(self.dismiss_snackbar, 3)
         
     # erases all the selected buttons and reset their colors
     def eraser(self):
