@@ -23,7 +23,7 @@ Builder.load_file('graphics/layout.kv')
 # main class of the program
 class MainScreen(BoxLayout):
 
-    # starts important variables
+    # Starts important variables
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # setting up DATE and TIME variables to automatically update
@@ -34,7 +34,7 @@ class MainScreen(BoxLayout):
         self.counter = 0
         self.last_button_press_time = None
 
-    # plays a click sound
+    # Plays a click sound
     def click_sound(self):
         try:
             pygame.mixer.init()
@@ -44,7 +44,7 @@ class MainScreen(BoxLayout):
         except FileNotFoundError:
             sound = None
 
-    # sound that plays when data is sucessfully saved
+    # Plays an alert sound
     def alert_sound(self):
         try:
             pygame.mixer.init()
@@ -55,7 +55,7 @@ class MainScreen(BoxLayout):
         except FileNotFoundError:
             sound = None
 
-    # sound that plays when the selected content is erased
+    # Plays a sound that represents data being erased
     def eraser_sound(self):
         try:
             pygame.mixer.init()
@@ -66,7 +66,7 @@ class MainScreen(BoxLayout):
         except FileNotFoundError:
             sound = None
 
-    # sound that plays when data is sucessfully saved
+    # Plays a confirmation sound
     def data_saved_sound(self):
         try:
             pygame.mixer.init()
@@ -76,7 +76,7 @@ class MainScreen(BoxLayout):
         except FileNotFoundError:
             sound = None
 
-    # method that opens the assets folder for easy access to the excel file
+    # Opens the assets folder for easy access to the excel file
     def open_assets_folder(self, *args):
         # Check if the script is running as an exe file or as a python script
         if getattr(sys, 'frozen', False):
@@ -95,14 +95,14 @@ class MainScreen(BoxLayout):
         # Open the folder in the default file explorer of the operating system
         os.startfile(full_file_path)
 
-    # creates a new thread to run the report generation on the background
+    # Creates a new thread to run the report generation on the background
     def generate_report_thread(self):
         # calls the snackbar that informs the report is ready
         Clock.schedule_once(self.report_start_snackbar)
         # starts the report creation thread
         threading.Thread(target=self.generate_report).start()
 
-    # snackbar that informs the report will be generated
+    # Snackbar that informs the report will be generated
     def report_start_snackbar(self, dt):
         self.snackbar = Snackbar(
                             text="O relatório será gerado em instantes...", 
@@ -112,7 +112,7 @@ class MainScreen(BoxLayout):
         self.snackbar.open()
         Clock.schedule_once(self.dismiss_snackbar, 3)
 
-    # generate report method
+    # Generate report method
     def generate_report(self, instance=None):
         # function that calculates the time of the day based on specific time periods
         def is_time_in_period(time_value, period):
@@ -220,6 +220,7 @@ class MainScreen(BoxLayout):
         # calls the snackbar that informs the report is ready
         Clock.schedule_once(self.report_ready_snackbar)
 
+    # Snackbar that informs the report being ready
     def report_ready_snackbar(self, dt):
         self.snackbar = Snackbar(
                             text="O relatório está pronto!", 
@@ -229,7 +230,7 @@ class MainScreen(BoxLayout):
         self.snackbar.open()
         Clock.schedule_once(self.dismiss_snackbar, 3)
         
-    # erases all the selected buttons and reset their colors
+    # Erases all the selected buttons and reset their colors
     def eraser(self):
         # make its color blue
         self.ids.auto_button.md_bg_color = 'blue'
@@ -261,7 +262,7 @@ class MainScreen(BoxLayout):
         # plays an erasing sound
         self.eraser_sound()
 
-    # handles what button was clicked between auto and manual
+    # Handles what button was clicked between auto and manual
     def toggle_date_and_time(self, button):
         # declares variables associated with the two possible buttons
         auto_button = self.ids.auto_button
@@ -311,7 +312,7 @@ class MainScreen(BoxLayout):
             self.ids.afternoon_button.disabled = False
             self.ids.night_button.disabled = False
 
-    # handles the time of the day buttons
+    # Handles the time of the day buttons
     def on_manual_period(self, instance):
         buttons = [self.ids.morning_button, self.ids.afternoon_button, self.ids.night_button]
         # toggle the selected button's color between blue and grey
@@ -323,7 +324,7 @@ class MainScreen(BoxLayout):
             instance.md_bg_color = [0, 0, 1, 1]
             self.TIME = instance.text 
 
-    # on save used on date picker function
+    # Handles the on save used in the date picker function
     def on_save_date(self, instance, value, date_range):
         self.DATE = value.strftime("%d/%m/%Y")
         # play an alert sound
@@ -336,13 +337,13 @@ class MainScreen(BoxLayout):
                         )
         snackbar.open()
         
-    # opens the date picker widget
+    # Opens the date picker widget
     def show_date_picker(self):
         date_dialog = MDDatePicker()
         date_dialog.bind(on_save=self.on_save_date)
         date_dialog.open()
 
-    # handles the age selection buttons
+    # Handles the age selection buttons
     def age_selection(self, instance):
         buttons = [self.ids.twelve_yo_button, self.ids.thirteen_til_seventeen_yo_button,
                 self.ids.eighteen_til_fiftynine_yo_button, self.ids.sixty_yo_button]
@@ -354,7 +355,7 @@ class MainScreen(BoxLayout):
                 button.md_bg_color = [0.35, 0.35, 0.35, 1]
             instance.md_bg_color = [0, 0, 1, 1]
 
-    # handles the public selection buttons
+    # Handles the public selection buttons
     def public_selection(self, instance):
         buttons = [self.ids.cei_button, self.ids.emei_button, self.ids.emef_button,
                    self.ids.etec_button, self.ids.community_button, self.ids.employee_button]
@@ -366,11 +367,11 @@ class MainScreen(BoxLayout):
                 button.md_bg_color = [0.35, 0.35, 0.35, 1]
             instance.md_bg_color = [0, 0, 1, 1]
 
-    # creates a new thread to run the save data on the background
+    # Creates a new thread to run the save data on the background
     def save_data_thread(self):
         threading.Thread(target=self.save_data).start()
 
-    # save data method
+    # Save data method
     def save_data(self, instance=None, *args):
         # checks for the data where the file will be saved
         wb_path = 'assets/data.xlsx'
@@ -442,9 +443,10 @@ class MainScreen(BoxLayout):
             # calls an alert snackbar
             Clock.schedule_once(self.save_alert_snackbar)
 
+    # Snackbar that informs the data was saved successfully
     def save_successful_snackbar(self, dt):
-        # snackbar that shows that the data was saved and sums the save count if 
-        # it is saved again in less than 3sec
+        ''' snackbar that shows that the data was saved and sums the save count if 
+        it is saved again in less than 3sec'''
         if self.snackbar is None:
             self.counter = 1
             text = f"Dados salvos x{self.counter}"
@@ -472,6 +474,7 @@ class MainScreen(BoxLayout):
 
         self.last_button_press_time = Clock.get_time()
 
+    # Snackbar that informs the required selections are missing
     def save_alert_snackbar(self, dt):
         # plays a sound when the alert message is displayed
         self.alert_sound()
@@ -482,7 +485,7 @@ class MainScreen(BoxLayout):
                         )
         alert_snackbar.open()
 
-    # deals with the dismissal of the saved data's snackbar
+    # Dismisses the saved data's snackbar
     def dismiss_snackbar(self, dt):
         self.snackbar.dismiss()
         self.snackbar = None
