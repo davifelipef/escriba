@@ -97,20 +97,8 @@ class MainScreen(BoxLayout):
 
     # Creates a new thread to run the report generation on the background
     def generate_report_thread(self):
-        # calls the snackbar that informs the report is ready
-        Clock.schedule_once(self.report_start_snackbar)
         # starts the report creation thread
         threading.Thread(target=self.generate_report).start()
-
-    # Snackbar that informs the report will be generated
-    def report_start_snackbar(self, dt):
-        self.snackbar = Snackbar(
-                            text="O relatório será gerado em instantes...", 
-                            bg_color=(0, 0, 1, 1), # blue
-                            font_size="16sp"
-                        )
-        self.snackbar.open()
-        Clock.schedule_once(self.dismiss_snackbar, 3)
 
     # Generate report method
     def generate_report(self, instance=None):
@@ -130,16 +118,20 @@ class MainScreen(BoxLayout):
         workbook = openpyxl.load_workbook(input_file)
         sheet = workbook.active
 
-        # Get the unique dates from the input file and stores them in a list
-        dates = []
-        for row in sheet.iter_rows(values_only=True, min_row=2):
-            date = row[0]
-            if date not in dates:
-                dates.append(date)
+        dates = set()  # Use a set to store unique dates
 
-        # Checks if the dates are valid and then sorts them in ascendent order
-        valid_dates = [date for date in dates if len(date.split('/')) == 3]
-        valid_dates.sort(key=lambda x: (x.split('/')[2], x.split('/')[1], x.split('/')[0]))
+        for row in sheet.iter_rows(values_only=True, min_row=2):
+            date_str = row[0]  # Assuming the date is in the first column
+            # Check if the date format is valid (dd/mm/yyyy)
+            if len(date_str.split('/')) == 3:
+                dates.add(date_str)  # Add unique dates to the set
+
+        # Sort the valid dates
+        def sort_by_date(date):
+            day, month, year = map(int, date.split('/'))
+            return year, month, day
+
+        valid_dates = sorted(dates, key=sort_by_date)
 
         # Specifies the desktop as the place where the output file will be saved
         desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
@@ -150,7 +142,7 @@ class MainScreen(BoxLayout):
         output_sheet = output_workbook.active
 
         # Set the dates as the column headers
-        for index, date in enumerate(dates):
+        for index, date in enumerate(valid_dates):
             column_letter = get_column_letter(index + 2)
             output_sheet[column_letter + "1"] = date
 
@@ -220,7 +212,7 @@ class MainScreen(BoxLayout):
         # calls the snackbar that informs the report is ready
         Clock.schedule_once(self.report_ready_snackbar)
 
-    # Snackbar that informs the report being ready
+    # Snackbar that informs the report is ready
     def report_ready_snackbar(self, dt):
         self.snackbar = Snackbar(
                             text="O relatório está pronto!", 
@@ -228,7 +220,7 @@ class MainScreen(BoxLayout):
                             font_size="16sp"
                         )
         self.snackbar.open()
-        Clock.schedule_once(self.dismiss_snackbar, 3)
+        Clock.schedule_once(self.dismiss_snackbar, 8)
         
     # Erases all the selected buttons and reset their colors
     def eraser(self):
@@ -485,18 +477,19 @@ class MainScreen(BoxLayout):
                         )
         alert_snackbar.open()
 
-    # Dismisses the saved data's snackbar
+    # Dismisses the snackbar
     def dismiss_snackbar(self, dt):
-        self.snackbar.dismiss()
-        self.snackbar = None
-        self.counter = 0
+        if self.snackbar:
+            self.snackbar.dismiss()
+            self.snackbar = None
+            self.counter = 0
 
 # app class
 class Scribe(MDApp):
  
     def build(self):
         # sets the app window title
-        self.title = 'Escriba - Versão 0.3'
+        self.title = 'Escriba - Versão 0.4 - 10/11/2023'
         # set the taskbar icon
         Window.set_icon('graphics/app.ico')
         # set the window icon
