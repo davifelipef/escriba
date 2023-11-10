@@ -1,3 +1,3 @@
 # Escriba
 
-A free software created to streamline the audience count of the of attendees to a public library.
+A free software designed to streamline visitor counting processes within public libraries
