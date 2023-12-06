@@ -13,6 +13,7 @@ from kivymd.app import MDApp
 from kivy.lang import Builder
 from kivy.uix.boxlayout import BoxLayout
 from kivymd.uix.snackbar import Snackbar
+from collections import defaultdict
 from openpyxl.utils import get_column_letter
 from kivymd.uix.pickers import MDDatePicker
 from kivy.clock import Clock
@@ -102,7 +103,6 @@ class MainScreen(BoxLayout):
 
     # Generate report method
     def generate_report(self, instance=None):
-        # function that calculates the time of the day based on specific time periods
         def is_time_in_period(time_value, period):
             if period == "Manhã":
                 return "08:00:00" <= time_value <= "11:59:59"
@@ -113,30 +113,41 @@ class MainScreen(BoxLayout):
             else:
                 return False
 
-        # Load the input data file
         input_file = "assets/data.xlsx"
         workbook = openpyxl.load_workbook(input_file)
         sheet = workbook.active
 
-        dates = set()  # Use a set to store unique dates
+        public_types = ["CEI", "EMEI", "EMEF", "ETEC", "Comunidade", "Funcionário"]
+        ages = ["Até 12", "13 a 17", "18 a 59", "60 ou mais"]
+        time_of_day = ["Manhã", "Tarde", "Noite"]
+
+        public_type_counts = defaultdict(int)
+        age_counts = defaultdict(int)
+        time_counts = defaultdict(int)
+
+        dates = set()
+        data = []
 
         for row in sheet.iter_rows(values_only=True, min_row=2):
-            date_str = row[0]  # Assuming the date is in the first column
-            # Check if the date format is valid (dd/mm/yyyy)
+            date_str, time_str, age, public_type = row[:4]
+
             if len(date_str.split('/')) == 3:
-                dates.add(date_str)  # Add unique dates to the set
+                dates.add(date_str)
+                data.append((date_str, time_str, age, public_type))
 
-        # Sort the valid dates
-        def sort_by_date(date):
-            day, month, year = map(int, date.split('/'))
-            return year, month, day
+                if public_type in public_types:
+                    public_type_counts[(date_str, public_type)] += 1
 
-        valid_dates = sorted(dates, key=sort_by_date)
+                if age in ages:
+                    age_counts[(date_str, age)] += 1
 
-        # Specifies the desktop as the place where the output file will be saved
+                for period in time_of_day:
+                    if is_time_in_period(time_str, period):
+                        time_counts[(date_str, period)] += 1
+
+        valid_dates = sorted(dates, key=lambda date: tuple(map(int, date.split('/'))))
+
         desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-
-        # Create the output workbook and customize the file name with the current date
         output_file = f"consolidado-{self.DATE.replace('/', '-')}.xlsx"
         output_workbook = openpyxl.Workbook()
         output_sheet = output_workbook.active
@@ -146,7 +157,7 @@ class MainScreen(BoxLayout):
             column_letter = get_column_letter(index + 2)
             output_sheet[column_letter + "1"] = date
 
-        # Sets the public types as the first set of rows
+         # Sets the public types as the first set of rows
         public_types = ["CEI", "EMEI", "EMEF", "ETEC", "Comunidade", "Funcionário"]
         for index, public_type in enumerate(public_types):
             # Sets the cell A2 as the start of the public type rows so A7 holds the last row
@@ -173,44 +184,33 @@ class MainScreen(BoxLayout):
         # Sets the cell A17 as the total row to sum all the period of the day numbers
         output_sheet["A17"] = "Total"
 
-        # Calculate and populate the public type report data
-        for index, date in enumerate(dates):
+        # Populate counts for public types
+        for index, date in enumerate(valid_dates):
             column_letter = get_column_letter(index + 2)
             for i, public_type in enumerate(public_types):
-                count = 0
-                for row in sheet.iter_rows(values_only=True, min_row=2):
-                    if row[0] == date and row[3] == public_type:
-                        count += 1
-                output_sheet[column_letter + str(i + 2)] = count
+                output_sheet[column_letter + str(i + 2)] = public_type_counts.get((date, public_type), 0)
 
-            # Calculate and populate the total of public types for the given day
             output_sheet[column_letter + "8"] = f"=SUM({column_letter}2:{column_letter}7)"
 
+        # Populate counts for ages
+        for index, date in enumerate(valid_dates):
+            column_letter = get_column_letter(index + 2)
             for i, age in enumerate(ages):
-                count = 0
-                for row in sheet.iter_rows(values_only=True, min_row=2):
-                    if row[0] == date and row[2] == age:
-                        count += 1
-                output_sheet[column_letter + str(i + 9)] = count
+                output_sheet[column_letter + str(i + 9)] = age_counts.get((date, age), 0)
 
-            # Calculate and populate the total of ages for the day
             output_sheet[column_letter + "13"] = f"=SUM({column_letter}9:{column_letter}12)"
 
+        # Populate counts for time of day
+        for index, date in enumerate(valid_dates):
+            column_letter = get_column_letter(index + 2)
             for i, time in enumerate(time_of_day):
-                count = 0
-                for row in sheet.iter_rows(values_only=True, min_row=2):
-                    if row[0] == date and is_time_in_period(row[1], time):
-                        count += 1
-                output_sheet[column_letter + str(i + 14)] = count
+                output_sheet[column_letter + str(i + 14)] = time_counts.get((date, time), 0)
 
-            # Calculate and populate the total of time of the day for the day
             output_sheet[column_letter + "17"] = f"=SUM({column_letter}14:{column_letter}16)"
 
-        # Save the output workbook
-        #output_workbook.save(output_file)
         output_workbook.save(os.path.join(desktop_path, output_file))
         # calls the snackbar that informs the report is ready
-        Clock.schedule_once(self.report_ready_snackbar)
+        Clock.schedule_once(self.report_ready_snackbar)  # Note: Define or implement your 'report_ready_snackbar' function
 
     # Snackbar that informs the report is ready
     def report_ready_snackbar(self, dt):
